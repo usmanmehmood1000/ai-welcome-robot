@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>AI Welcome Robot</title>
+
+
+<!-- TensorFlow.js -->
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+
+<style>
+
+/* =========================
+   MAIN BACKGROUND
+========================= */
+
+body {
+
+    margin: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    overflow: hidden;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    font-family: Arial, sans-serif;
+
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            #4c6fff 0%,
+            #273a9e 35%,
+            #111936 70%,
+            #080b18 100%
+        );
+
+}
+
+
+/* =========================
+   BACKGROUND GLOW
+========================= */
+
+.glow {
+
+    position: fixed;
+
+    width: 600px;
+    height: 600px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(90,180,255,0.25),
+            rgba(90,180,255,0)
+        );
+
+    animation: glowPulse 4s infinite ease-in-out;
+
+    pointer-events: none;
+
+}
+
+
+@keyframes glowPulse {
+
+    0%,100% {
+
+        transform: scale(1);
+
+        opacity: 0.6;
+
+    }
+
+    50% {
+
+        transform: scale(1.25);
+
+        opacity: 1;
+
+    }
+
+}
+
+
+/* =========================
+   ROBOT FACE
+========================= */
+
+#robotFace {
+
+    position: relative;
+
+    width: 90vw;
+
+    max-width: 900px;
+
+    height: 60vh;
+
+    max-height: 600px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 8vw;
+
+}
+
+
+/* =========================
+   EYE
+========================= */
+
+.eye {
+
+    position: relative;
+
+    width: 24vw;
+
+    max-width: 220px;
+
+    height: 34vw;
+
+    max-height: 300px;
+
+    min-width: 130px;
+
+    min-height: 180px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #d9f4ff
+        );
+
+    box-shadow:
+
+        0 0 20px rgba(120,220,255,0.8),
+
+        0 0 50px rgba(80,170,255,0.6),
+
+        inset 0 -15px 30px rgba(60,130,220,0.2);
+
+    overflow: hidden;
+
+    transition:
+        transform 0.4s ease,
+        height 0.15s ease,
+        box-shadow 0.4s ease;
+
+}
+
+
+/* =========================
+   EYE HIGHLIGHT
+========================= */
+
+.eye::before {
+
+    content: "";
+
+    position: absolute;
+
+    width: 35%;
+
+    height: 18%;
+
+    border-radius: 50%;
+
+    background: white;
+
+    top: 12%;
+
+    left: 18%;
+
+    opacity: 0.9;
+
+    z-index: 3;
+
+}
+
+
+/* =========================
+   PUPIL
+========================= */
+
+.pupil {
+
+    position: absolute;
+
+    width: 45%;
+
+    height: 58%;
+
+    border-radius: 50%;
+
+    left: 50%;
+
+    top: 52%;
+
+    transform:
+        translate(-50%, -50%);
+
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            #75eaff 0%,
+            #1976ff 30%,
+            #10256e 70%,
+            #050817 100%
+        );
+
+    box-shadow:
+
+        0 0 15px #42d9ff,
+
+        0 0 35px rgba(0,200,255,0.7);
+
+    transition:
+        transform 0.25s ease;
+
+}
+
+
+/* PUPIL REFLECTION */
+
+.pupil::after {
+
+    content: "";
+
+    position: absolute;
+
+    width: 25%;
+
+    height: 18%;
+
+    background: white;
+
+    border-radius: 50%;
+
+    top: 15%;
+
+    left: 18%;
+
+}
+
+
+/* =========================
+   NORMAL BLINK
+========================= */
+
+.blink .eye {
+
+    height: 25px;
+
+    min-height: 25px;
+
+    border-radius: 50%;
+
+    box-shadow:
+        0 0 20px rgba(80,180,255,0.7);
+
+}
+
+
+.blink .pupil {
+
+    opacity: 0;
+
+}
+
+
+/* =========================
+   HAPPY / GREETING
+========================= */
+
+.happy .eye {
+
+    transform:
+        scale(1.12);
+
+    box-shadow:
+
+        0 0 30px #69eaff,
+
+        0 0 70px rgba(0,220,255,0.9),
+
+        inset 0 -15px 30px rgba(0,180,255,0.3);
+
+}
+
+
+.happy .pupil {
+
+    transform:
+        translate(-50%, -50%)
+        scale(1.12);
+
+}
+
+
+/* =========================
+   WELCOME MESSAGE
+========================= */
+
+#message {
+
+    position: fixed;
+
+    bottom: 11%;
+
+    width: 100%;
+
+    text-align: center;
+
+    color: white;
+
+    font-size: clamp(
+        24px,
+        5vw,
+        52px
+    );
+
+    font-weight: bold;
+
+    letter-spacing: 2px;
+
+    text-shadow:
+
+        0 0 10px #4ce8ff,
+
+        0 0 25px #4ce8ff;
+
+    opacity: 0;
+
+    transform:
+        translateY(20px)
+        scale(0.8);
+
+    transition:
+
+        opacity 0.4s ease,
+
+        transform 0.4s ease;
+
+    pointer-events: none;
+
+}
+
+
+#message.show {
+
+    opacity: 1;
+
+    transform:
+        translateY(0)
+        scale(1);
+
+}
+
+
+/* =========================
+   START BUTTON
+========================= */
+
+#start {
+
+    position: fixed;
+
+    bottom: 25px;
+
+    left: 50%;
+
+    transform:
+        translateX(-50%);
+
+    padding:
+        14px 32px;
+
+    border: none;
+
+    border-radius: 30px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #35d9ff,
+            #536dfe
+        );
+
+    color: white;
+
+    font-size: 18px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    box-shadow:
+
+        0 5px 25px rgba(0,180,255,0.5);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+
+}
+
+
+#start:hover {
+
+    transform:
+        translateX(-50%)
+        scale(1.05);
+
+    box-shadow:
+
+        0 5px 35px rgba(0,220,255,0.8);
+
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+#status {
+
+    position: fixed;
+
+    top: 20px;
+
+    width: 100%;
+
+    text-align: center;
+
+    color: rgba(255,255,255,0.8);
+
+    font-size: 15px;
+
+    letter-spacing: 1px;
+
+}
+
+
+/* =========================
+   FLOATING PARTICLES
+========================= */
+
+.particle {
+
+    position: fixed;
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,0.7);
+
+    animation:
+        floatUp linear infinite;
+
+    pointer-events: none;
+
+}
+
+
+@keyframes floatUp {
+
+    from {
+
+        transform:
+            translateY(100vh);
+
+        opacity: 0;
+
+    }
+
+    20% {
+
+        opacity: 0.8;
+
+    }
+
+    80% {
+
+        opacity: 0.8;
+
+    }
+
+    to {
+
+        transform:
+            translateY(-20vh);
+
+        opacity: 0;
+
+    }
+
+}
+
+
+/* =========================
+   HIDDEN CAMERA
+========================= */
+
+#video {
+
+    position: fixed;
+
+    width: 1px;
+
+    height: 1px;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+    #robotFace {
+
+        gap: 8vw;
+
+    }
+
+    .eye {
+
+        min-width: 105px;
+
+        min-height: 150px;
+
+    }
+
+    #message {
+
+        bottom: 14%;
+
+        font-size: 28px;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- BACKGROUND GLOW -->
+
+<div class="glow"></div>
+
+
+<!-- FLOATING PARTICLES -->
+
+<div class="particle"
+     style="left:10%; animation-duration:9s;"></div>
+
+<div class="particle"
+     style="left:25%; animation-duration:12s;"></div>
+
+<div class="particle"
+     style="left:45%; animation-duration:10s;"></div>
+
+<div class="particle"
+     style="left:65%; animation-duration:14s;"></div>
+
+<div class="particle"
+     style="left:85%; animation-duration:11s;"></div>
+
+
+<!-- STATUS -->
+
+<div id="status">
+
+    AI WELCOME ROBOT
+
+</div>
+
+
+<!-- ROBOT FACE -->
+
+<div id="robotFace">
+
+    <div class="eye">
+
+        <div class="pupil"></div>
+
+    </div>
+
+
+    <div class="eye">
+
+        <div class="pupil"></div>
+
+    </div>
+
+</div>
+
+
+<!-- MESSAGE -->
+
+<div id="message">
+
+    Assalam-o-Alaikum!<br>
+
+    Welcome to our KG Exhibition!
+
+</div>
+
+
+<!-- START BUTTON -->
+
+<button id="start">
+
+    START ROBOT
+
+</button>
+
+
+<!-- CAMERA -->
+
+<video
+    id="video"
+    autoplay
+    muted
+    playsinline>
+</video>
+
+
+<!-- AUDIO -->
+
+<audio
+    id="welcomeAudio"
+    preload="auto">
+
+    <source
+        src="welcome.mp3"
+        type="audio/mpeg">
+
+</audio>
+
+
+<script>
+
+/* =========================
+   VARIABLES
+========================= */
+
+let model = null;
+
+let lastGreeting = 0;
+
+let busy = false;
+
+let audioUnlocked = false;
+
+
+/* =========================
+   ELEMENTS
+========================= */
+
+const video =
+    document.getElementById("video");
+
+const robotFace =
+    document.getElementById("robotFace");
+
+const message =
+    document.getElementById("message");
+
+const audio =
+    document.getElementById("welcomeAudio");
+
+const start =
+    document.getElementById("start");
+
+const status =
+    document.getElementById("status");
+
+
+/* =========================
+   START ROBOT
+========================= */
+
+async function startRobot() {
+
+    start.style.display = "none";
+
+    status.innerText =
+        "Starting AI Robot...";
+
+
+    /* =========================
+       UNLOCK AUDIO
+    ========================= */
+
+    try {
+
+        audio.volume = 1;
+
+        audio.muted = true;
+
+        await audio.play();
+
+        audio.pause();
+
+        audio.currentTime = 0;
+
+        audio.muted = false;
+
+        audioUnlocked = true;
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Audio unlock failed:",
+            error
+        );
+
+    }
+
+
+    /* =========================
+       CAMERA
+    ========================= */
+
+    try {
+
+        const stream =
+            await navigator
+            .mediaDevices
+            .getUserMedia({
+
+                video: {
+                    facingMode: "user"
+                },
+
+                audio: false
+
+            });
+
+
+        video.srcObject = stream;
+
+
+        status.innerText =
+            "Camera ready — Loading AI...";
+
+    }
+
+    catch (error) {
+
+        status.innerText =
+            "Camera permission required.";
+
+        alert(
+            "Please allow camera access."
+        );
+
+        console.log(error);
+
+        return;
+
+    }
+
+
+    /* =========================
+       LOAD AI
+    ========================= */
+
+    try {
+
+        model =
+            await cocoSsd.load();
+
+
+        status.innerText =
+            "AI Robot Ready";
+
+
+        startBlinking();
+
+
+        detectPerson();
+
+    }
+
+    catch (error) {
+
+        status.innerText =
+            "AI loading error.";
+
+        console.log(error);
+
+    }
+
+}
+
+
+/* =========================
+   BLINK
+========================= */
+
+function blink() {
+
+    if (busy) return;
+
+
+    robotFace.classList.add(
+        "blink"
+    );
+
+
+    setTimeout(() => {
+
+        robotFace.classList.remove(
+            "blink"
+        );
+
+    }, 180);
+
+}
+
+
+/* =========================
+   NATURAL BLINKING
+========================= */
+
+function startBlinking() {
+
+    function nextBlink() {
+
+        const delay =
+            Math.floor(
+                Math.random() * 4000
+            ) + 3000;
+
+
+        setTimeout(() => {
+
+            blink();
+
+            nextBlink();
+
+        }, delay);
+
+    }
+
+
+    nextBlink();
+
+}
+
+
+/* =========================
+   PERSON DETECTION
+========================= */
+
+async function detectPerson() {
+
+    if (!model) return;
+
+
+    try {
+
+        const predictions =
+            await model.detect(
+                video
+            );
+
+
+        const personDetected =
+            predictions.some(
+
+                p =>
+                    p.class === "person" &&
+                    p.score > 0.55
+
+            );
+
+
+        if (
+
+            personDetected &&
+
+            !busy &&
+
+            Date.now() -
+            lastGreeting >
+            10000
+
+        ) {
+
+            greet();
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Detection error:",
+            error
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        detectPerson
+    );
+
+}
+
+
+/* =========================
+   GREETING
+========================= */
+
+async function greet() {
+
+    busy = true;
+
+    lastGreeting =
+        Date.now();
+
+
+    /* HAPPY EYES */
+
+    robotFace.classList.add(
+        "happy"
+    );
+
+
+    /* MESSAGE */
+
+    message.classList.add(
+        "show"
+    );
+
+
+    status.innerText =
+        "Visitor detected";
+
+
+    /* AUDIO */
+
+    try {
+
+        audio.currentTime = 0;
+
+        audio.muted = false;
+
+        await audio.play();
+
+    }
+
+    catch (error) {
+
+        console.log(
+            "Audio playback failed:",
+            error
+        );
+
+    }
+
+
+    /* =========================
+       RETURN TO NORMAL
+    ========================= */
+
+    setTimeout(() => {
+
+        robotFace.classList.remove(
+            "happy"
+        );
+
+
+        message.classList.remove(
+            "show"
+        );
+
+
+        status.innerText =
+            "AI Robot Ready";
+
+
+        busy = false;
+
+    }, 7000);
+
+}
+
+
+/* =========================
+   START BUTTON
+========================= */
+
+start.addEventListener(
+    "click",
+    startRobot
+);
+
+</script>
+
+
+</body>
+
+</html>
